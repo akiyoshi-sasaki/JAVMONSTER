@@ -27,7 +27,6 @@ public class RegisterController {
 
     @PostMapping("/register")
     public String register(@ModelAttribute UserDto userDto) {
-        System.out.println(userDto);
         User existing = userService.findByUsername(userDto.getUserName());
         if(existing != null){
             return "register";

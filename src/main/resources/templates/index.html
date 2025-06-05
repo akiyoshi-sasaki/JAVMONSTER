@@ -5,6 +5,25 @@
     <title>JAVMONSTER</title>
 </head>
 <body>
-    <h1>トップ画面です</h1>
+    <h1>JAVMONSTER</h1>
+
+    <h2>ようこそ <span th:text="${userName}"></span> さん！</h2>
+    <p>あなたのベスト記録は <span th:text="${bestRecord}"></span> です。</p>
+
+    <form th:action="@{/game}" method="get">
+        <button type="submit">GAME START</button>
+    </form>
+
+    <h2>ランキング</h2>
+    <table>
+        <tr>
+            <th>ユーザー名</th>
+            <th>ベスト記録</th>
+        </tr>
+        <tr th:each="user : ${allUsers}">
+            <td th:text="${user.userName}"></td>
+            <td th:text="${user.bestRecord}"></td>
+        </tr>
+    </table>
 </body>
 </html>

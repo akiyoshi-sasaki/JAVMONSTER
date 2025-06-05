@@ -15,6 +15,10 @@ public class UserPrincipal implements UserDetails {
         this.user = user;
     }
 
+    public Integer getBestRecord() {
+        return user.getBestRecord();
+    }
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return null; // 必要ならロールなど返す

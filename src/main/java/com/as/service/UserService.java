@@ -1,5 +1,7 @@
 package com.as.service;
 
+import java.util.List;
+
 import jakarta.transaction.Transactional;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +37,10 @@ public class UserService implements UserDetailsService {
     //新たにメソッドを追加します
     public User findByUsername(String userName) {
         return userRepository.findByUserName(userName); // ユーザー名でユーザーを検索し返します
+    }
+
+    public List<User> findAllByOrderByBestRecordDesc() {
+        return userRepository.findAllByOrderByBestRecordDesc();
     }
     
     @Transactional // トランザクションを開始します。メソッドが終了したらトランザクションがコミットされます。
