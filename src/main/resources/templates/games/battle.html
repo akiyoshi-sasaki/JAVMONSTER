@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>JAVMONSTER - BATTLE</title>
+</head>
+<body>
+    <h1>JAVMONSTER</h1>
+    <h2>バトル</h2>
+    <form th:action="@{/games/play}" method="post">
+        <input type="hidden" name="actionType" value="1">
+        <input type="hidden" name="actionRate" value="40">
+        <button type="submit">こうげき 40%</button>
+    </form>
+    <form th:action="@{/games/play}" method="post">
+        <input type="hidden" name="actionType" value="2">
+        <input type="hidden" name="actionRate" value="60">
+        <button type="submit">まほう 60%</button>
+    </form>
+    <form th:action="@{/games/play}" method="post">
+        <input type="hidden" name="actionType" value="3">
+        <input type="hidden" name="actionRate" value="90">
+        <button type="submit">ぼうぎょ 90%</button>
+    </form>
+    <form th:action="@{/games/play}" method="post">
+        <input type="hidden" name="actionType" value="4">
+        <input type="hidden" name="actionRate" value="70">
+        <button type="submit">にげる 70%</button>
+    </form>
+
+    <table>
+        <tr><td>たいりょく</td><td th:text="${hp}"></td></tr>
+        <tr><td>こうげき</td><td th:text="${attack}"></td></tr>
+        <tr><td>まほう</td><td th:text="${magic_attack}"></td></tr>
+        <tr><td>ぼうぎょ</td><td th:text="${defence}"></td></tr>
+        <tr><td>すばやさ</td><td th:text="${quickness}"></td></tr>
+        <tr><td style="color: red;">はらぺこ</td><td th:text="${hungriness}"></td></tr>
+    </table>
+
+    <p>現在の勝利数: <strong th:text="${winCount}"></strong></p>
+
+    <form th:action="@{/index}" method="get">
+        <button type="submit">ゲームリセット</button>
+    </form>
+</body>
+</html>

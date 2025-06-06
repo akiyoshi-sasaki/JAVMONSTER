@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>JAVMONSTER - BATTLE</title>
+</head>
+<body>
+    <h1>JAVMONSTER</h1>
+
+    <h2>ボーナスの選択</h2>
+    <p>（※体力はバトル開始時には全快します）</p>
+    <form th:action="@{/games/apply-bonus}" method="post">
+        <input type="hidden" name="bonusType" value="1">
+        <input type="hidden" name="bonusValue" value="11">
+        <button type="submit">たいりょく +11</button>
+    </form>
+    <form th:action="@{/games/apply-bonus}" method="post">
+        <input type="hidden" name="bonusType" value="2">
+        <input type="hidden" name="bonusValue" value="12">
+        <button type="submit">こうげき +12</button>
+    </form>
+    <form th:action="@{/games/apply-bonus}" method="post">
+        <input type="hidden" name="bonusType" value="3">
+        <input type="hidden" name="bonusValue" value="13">
+        <button type="submit">まほう +13</button>
+    </form>
+    <form th:action="@{/games/apply-bonus}" method="post">
+        <input type="hidden" name="bonusType" value="4">
+        <input type="hidden" name="bonusValue" value="14">
+        <button type="submit">ぼうぎょ +14</button>
+    </form>
+    <form th:action="@{/games/apply-bonus}" method="post">
+        <input type="hidden" name="bonusType" value="5">
+        <input type="hidden" name="bonusValue" value="15">
+        <button type="submit">すばやさ +15</button>
+    </form>
+    <form th:action="@{/games/apply-bonus}" method="post">
+        <input type="hidden" name="bonusType" value="6">
+        <input type="hidden" name="bonusValue" value="1">
+        <button type="submit">はらぺこ +1</button>
+    </form>
+
+    <p>現在の空腹度: <strong th:text="${hungriness}"></strong></p>
+    <p>現在の勝利数: <strong th:text="${winCount}"></strong></p>
+
+    <form th:action="@{/index}" method="get">
+        <button type="submit">ゲームリセット</button>
+    </form>
+</body>
+</html>

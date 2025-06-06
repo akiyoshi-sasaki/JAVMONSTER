@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <title>JAVMONSTER</title>
@@ -10,7 +10,7 @@
     <h2>ようこそ <span th:text="${userName}"></span> さん！</h2>
     <p>あなたのベスト記録は <span th:text="${bestRecord}"></span> です。</p>
 
-    <form th:action="@{/game}" method="get">
+    <form th:action="@{/games/battle}" method="get">
         <button type="submit">GAME START</button>
     </form>
 

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>JAVMONSTER - BATTLE</title>
+</head>
+<body>
+    <h1>JAVMONSTER</h1>
+    <h2>結果</h2>
+
+    <p>勝利数: <strong th:text="${winCount}"></strong></p>
+
+    <h2>最終パラメータ</h2>
+    <table>
+        <tr><td>たいりょく</td><td th:text="${hp}"></td></tr>
+        <tr><td>こうげき</td><td th:text="${attack}"></td></tr>
+        <tr><td>まほう</td><td th:text="${magic_attack}"></td></tr>
+        <tr><td>ぼうぎょ</td><td th:text="${defence}"></td></tr>
+        <tr><td>すばやさ</td><td th:text="${quickness}"></td></tr>
+        <tr><td>はらぺこ</td><td th:text="${hungriness}"></td></tr>
+    </table>
+
+    <form th:action="@{/games/reset}" method="get">
+        <button type="submit">再挑戦</button>
+    </form>
+
+    <form th:action="@{/index}" method="get">
+        <button type="submit">トップに戻る</button>
+    </form>
+
+</body>
+</html>
