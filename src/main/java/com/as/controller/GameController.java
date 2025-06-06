@@ -23,45 +23,69 @@ public class GameController {
 
     @GetMapping("/battle")
     public String battle(Model model) {
+        int attack = gameSession.getAttack();
+        int magicAttack = gameSession.getMagicAttack();
+        int defence = gameSession.getDefence();
+        int quickness = gameSession.getQuickness();
 
         model.addAttribute("hp", gameSession.getHp());
-        model.addAttribute("attack", gameSession.getAttack());
-        model.addAttribute("magic_attack", gameSession.getMagicAttack());
-        model.addAttribute("defence", gameSession.getDefence());
-        model.addAttribute("quickness", gameSession.getQuickness());
+        model.addAttribute("attack", attack);
+        model.addAttribute("magicAttack", magicAttack);
+        model.addAttribute("defence", defence);
+        model.addAttribute("quickness", quickness);
         model.addAttribute("hungriness", gameSession.getHungriness());
- 
         model.addAttribute("winCount", gameSession.getWinCount());
+
+        // 新規モンスターを生成（ただし防御の場合は前回のモンスターを引き継ぐ)
+
+        // 各行動の確率を抽選
+        // DEBUG: モンスターのステータスは一旦固定値
+        model.addAttribute("attackRate", calcAttackRate(attack, 45, 8)); // HPと防御
+        model.addAttribute("magicAttackRate", calcMagicAttackRate(magicAttack, 45)); // HPのみ
+        model.addAttribute("defenceRate", calcDefenceRate(defence, 7)); // 攻撃
+        model.addAttribute("quicknessRate", calcQuicknessRate(quickness, 5)); // すばやさ
+
         return "games/battle";
     }
 
     @PostMapping("/play")
     public String play(@RequestParam int actionType, @RequestParam int actionRate, Model model) {
 
-        if (!judge(actionType, actionRate)) {
-            
+        gameSession.subtractHungriness();
+        if (actionType == 4) {
+            // 逃げる場合は空腹度-2となる
+            gameSession.subtractHungriness();
         }
 
-        gameSession.subtractHungriness();
-        gameSession.addWinCount();
-        
-        // DEBUG
-        if (gameSession.getWinCount() > 10) {
-            model.addAttribute("winCount", gameSession.getWinCount());
-            model.addAttribute("hp", gameSession.getHp());
-            model.addAttribute("attack", gameSession.getAttack());
-            model.addAttribute("magic_attack", gameSession.getMagicAttack());
-            model.addAttribute("defence", gameSession.getDefence());
-            model.addAttribute("quickness", gameSession.getQuickness());
-            model.addAttribute("hungriness", gameSession.getHungriness());
+        model.addAttribute("winCount", gameSession.getWinCount());
+        model.addAttribute("hp", gameSession.getHp());
+        model.addAttribute("attack", gameSession.getAttack());
+        model.addAttribute("magicAttack", gameSession.getMagicAttack());
+        model.addAttribute("defence", gameSession.getDefence());
+        model.addAttribute("quickness", gameSession.getQuickness());
+        model.addAttribute("hungriness", gameSession.getHungriness());
+
+        if (!judge(actionType, actionRate)) {
             return "games/result";
         }
- 
-        return "redirect:bonus-select";
-    }
 
-    @GetMapping("/bonus-select")
-    public String showSelect() {
+        if (actionType == 3) {
+            // モンスターのリセットをしない
+            return "redirect:battle";
+        }
+
+        if (actionType == 4) {
+            // ボーナスが貰えない
+            return "redirect:battle";
+        }
+
+        gameSession.addWinCount();
+
+        // DEBUG
+        if (gameSession.getWinCount() > 10) {
+            return "games/result";
+        }
+
         return "games/bonus-select";
     }
 
@@ -77,14 +101,23 @@ public class GameController {
         return "redirect:battle";
     }
 
-    private boolean judge(int actionType, int actionRate) {
-//        if (player.equals(cpu)) return "あいこ";
-//        return switch (player) {
-//            case "グー" -> cpu.equals("チョキ") ? "勝ち" : "負け";
-//            case "チョキ" -> cpu.equals("パー") ? "勝ち" : "負け";
-//            case "パー" -> cpu.equals("グー") ? "勝ち" : "負け";
-//            default -> "負け";
-//        };
-        return true;
+    private boolean judge(int actionType, int actionRate) {   
+        return this.random.nextInt(100) < actionRate; // 0〜99 の中で 0〜69 は70個 → 70%
+    }
+
+    private int calcAttackRate(int attack, int monsterHp, int monsterDefence) {
+        return Math.round((attack * attack) - (monsterDefence * monsterHp / 10));
+    }
+
+    private int calcMagicAttackRate(int magicAttack, int monsterHp) {
+        return Math.round((magicAttack * magicAttack) - (monsterHp / 10));
+    }
+
+    private int calcDefenceRate(int attack, int monsterAttack) {
+        return Math.round((attack * attack) - (monsterAttack * monsterAttack));
+    }
+
+    private int calcQuicknessRate(int quickness, int monsterQuickness) {
+        return Math.round((quickness * quickness) - (monsterQuickness * monsterQuickness));
     }
 }

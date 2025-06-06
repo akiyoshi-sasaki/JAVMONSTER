@@ -6,6 +6,8 @@
 </head>
 <body>
     <h1>JAVMONSTER</h1>
+    
+    <p style="font-size: 15px;">勝利した！</p>
 
     <h2>ボーナスの選択</h2>
     <p>（※体力はバトル開始時には全快します）</p>
@@ -40,7 +42,15 @@
         <button type="submit">はらぺこ +1</button>
     </form>
 
-    <p>現在の空腹度: <strong th:text="${hungriness}"></strong></p>
+    <table>
+        <tr><td>たいりょく</td><td th:text="${hp}"></td></tr>
+        <tr><td>こうげき</td><td th:text="${attack}"></td></tr>
+        <tr><td>まほう</td><td th:text="${magicAttack}"></td></tr>
+        <tr><td>ぼうぎょ</td><td th:text="${defence}"></td></tr>
+        <tr><td>すばやさ</td><td th:text="${quickness}"></td></tr>
+        <tr><td>はらぺこ</td><td th:text="${hungriness}"></td></tr>
+    </table>
+
     <p>現在の勝利数: <strong th:text="${winCount}"></strong></p>
 
     <form th:action="@{/index}" method="get">

@@ -9,32 +9,32 @@
     <h2>バトル</h2>
     <form th:action="@{/games/play}" method="post">
         <input type="hidden" name="actionType" value="1">
-        <input type="hidden" name="actionRate" value="40">
-        <button type="submit">こうげき 40%</button>
+        <input type="hidden" name="actionRate" th:value="${attackRate}">
+        <button type="submit" th:text="'こうげき' + ${attackRate} + '%'"></button>
     </form>
     <form th:action="@{/games/play}" method="post">
         <input type="hidden" name="actionType" value="2">
-        <input type="hidden" name="actionRate" value="60">
-        <button type="submit">まほう 60%</button>
+        <input type="hidden" name="actionRate" th:value="${magicAttackRate}">
+        <button type="submit" th:text="'まほう' + ${magicAttackRate} + '%'"></button>
     </form>
     <form th:action="@{/games/play}" method="post">
         <input type="hidden" name="actionType" value="3">
-        <input type="hidden" name="actionRate" value="90">
-        <button type="submit">ぼうぎょ 90%</button>
+        <input type="hidden" name="actionRate" th:value="${defenceRate}">
+        <button type="submit" th:text="'ぼうぎょ' + ${defenceRate} + '%'"></button>
     </form>
     <form th:action="@{/games/play}" method="post">
         <input type="hidden" name="actionType" value="4">
-        <input type="hidden" name="actionRate" value="70">
-        <button type="submit">にげる 70%</button>
+        <input type="hidden" name="actionRate" th:value="${quicknessRate}">
+        <button type="submit" th:text="'にげる' + ${quicknessRate} + '% (空腹度 -2)'"></button>
     </form>
 
     <table>
         <tr><td>たいりょく</td><td th:text="${hp}"></td></tr>
         <tr><td>こうげき</td><td th:text="${attack}"></td></tr>
-        <tr><td>まほう</td><td th:text="${magic_attack}"></td></tr>
+        <tr><td>まほう</td><td th:text="${magicAttack}"></td></tr>
         <tr><td>ぼうぎょ</td><td th:text="${defence}"></td></tr>
         <tr><td>すばやさ</td><td th:text="${quickness}"></td></tr>
-        <tr><td style="color: red;">はらぺこ</td><td th:text="${hungriness}"></td></tr>
+        <tr><td>はらぺこ</td><td th:text="${hungriness}"></td></tr>
     </table>
 
     <p>現在の勝利数: <strong th:text="${winCount}"></strong></p>
