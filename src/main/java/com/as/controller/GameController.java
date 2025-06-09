@@ -1,5 +1,6 @@
 package com.as.controller;
 
+import java.util.List;
 import java.util.Random;
 
 import org.springframework.stereotype.Controller;
@@ -9,20 +10,26 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import com.as.entity.Monster;
+import com.as.repository.MonsterRepository;
 import com.as.session.GameSession;
 
 @Controller
 @RequestMapping("/games")
 public class GameController {
-    private final GameSession gameSession;
-    private final Random random = new Random();
 
-    public GameController(GameSession gameSession) {
+    private final Random random = new Random();
+    private final GameSession gameSession;
+    private final MonsterRepository monsterRepository;
+    
+    public GameController(GameSession gameSession, MonsterRepository monsterRepository) {
         this.gameSession = gameSession;
+        this.monsterRepository = monsterRepository;
     }
 
     @GetMapping("/battle")
-    public String battle(Model model) {
+    public String battle(Model model, @RequestParam(required = false) Integer actionType,
+            @RequestParam(required = false) Long monsterId) {
         int attack = gameSession.getAttack();
         int magicAttack = gameSession.getMagicAttack();
         int defence = gameSession.getDefence();
@@ -36,21 +43,30 @@ public class GameController {
         model.addAttribute("hungriness", gameSession.getHungriness());
         model.addAttribute("winCount", gameSession.getWinCount());
 
+        Monster selectedMonster;
         // 新規モンスターを生成（ただし防御の場合は前回のモンスターを引き継ぐ)
-
+        if (actionType == null || actionType != 3) {
+            List<Monster> monsters = monsterRepository.findByPhase(1); // DEBUG：phaseを固定
+            selectedMonster = drawRandomMonster(monsters);
+            model.addAttribute("monster", selectedMonster);
+        } else {
+            selectedMonster = monsterRepository.findById(monsterId).get(); // FIXME: 空だった時のエラー未対応
+            model.addAttribute("monster", selectedMonster);
+        }
+        
         // 各行動の確率を抽選
-        // DEBUG: モンスターのステータスは一旦固定値
-        model.addAttribute("attackRate", calcAttackRate(attack, 45, 8)); // HPと防御
-        model.addAttribute("magicAttackRate", calcMagicAttackRate(magicAttack, 45)); // HPのみ
-        model.addAttribute("defenceRate", calcDefenceRate(defence, 7)); // 攻撃
-        model.addAttribute("quicknessRate", calcQuicknessRate(quickness, 5)); // すばやさ
+        model.addAttribute("attackRate", calcAttackRate(attack, selectedMonster.getHp(), selectedMonster.getDefence())); // HPと防御
+        model.addAttribute("magicAttackRate", calcMagicAttackRate(magicAttack, selectedMonster.getHp())); // HPのみ
+        model.addAttribute("defenceRate", calcDefenceRate(defence, selectedMonster.getAttack())); // 攻撃
+        model.addAttribute("quicknessRate", calcQuicknessRate(quickness, selectedMonster.getQuickness())); // すばやさ
 
         return "games/battle";
     }
 
     @PostMapping("/play")
-    public String play(@RequestParam int actionType, @RequestParam int actionRate, Model model) {
-
+    public String play(
+            @RequestParam int actionType, @RequestParam int actionRate, Model model,
+            @RequestParam(required = false) Long monsterId) {
         gameSession.subtractHungriness();
         if (actionType == 4) {
             // 逃げる場合は空腹度-2となる
@@ -71,7 +87,7 @@ public class GameController {
 
         if (actionType == 3) {
             // モンスターのリセットをしない
-            return "redirect:battle";
+            return "redirect:battle?actionType=" + actionType + "&monsterId=" + monsterId;
         }
 
         if (actionType == 4) {
@@ -85,7 +101,6 @@ public class GameController {
         if (gameSession.getWinCount() > 10) {
             return "games/result";
         }
-
         return "games/bonus-select";
     }
 
@@ -119,5 +134,21 @@ public class GameController {
 
     private int calcQuicknessRate(int quickness, int monsterQuickness) {
         return Math.round((quickness * quickness) - (monsterQuickness * monsterQuickness));
+    }
+
+    // DEBUG: ChatGPTに聞いたのであまり理解していないアルゴリズム
+    private Monster drawRandomMonster(List<Monster> monsters) {
+        int totalWeight = monsters.stream().mapToInt(Monster::getIncidence).sum();
+        int randomValue = new Random().nextInt(totalWeight);
+
+        int cumulativeWeight = 0;
+        for (Monster monster : monsters) {
+            cumulativeWeight += monster.getIncidence();
+            if (randomValue < cumulativeWeight) {
+                return monster;
+            }
+        }
+
+        return monsters.get(0); // 安全のため（実行されることは基本的にない）
     }
 }
