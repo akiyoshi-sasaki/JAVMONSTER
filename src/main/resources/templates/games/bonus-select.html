@@ -13,33 +13,33 @@
     <p>（※体力はバトル開始時には全快します）</p>
     <form th:action="@{/games/apply-bonus}" method="post">
         <input type="hidden" name="bonusType" value="1">
-        <input type="hidden" name="bonusValue" value="11">
-        <button type="submit">たいりょく +11</button>
+        <input type="hidden" name="bonusValue" th:value="${hpBonus}">
+        <button type="submit" th:text="'たいりょく' + ${hpBonus}"></button>
     </form>
     <form th:action="@{/games/apply-bonus}" method="post">
         <input type="hidden" name="bonusType" value="2">
-        <input type="hidden" name="bonusValue" value="12">
-        <button type="submit">こうげき +12</button>
+        <input type="hidden" name="bonusValue" th:value="${attackBonus}">
+        <button type="submit" th:text="'こうげき' + ${attackBonus}"></button>
     </form>
     <form th:action="@{/games/apply-bonus}" method="post">
         <input type="hidden" name="bonusType" value="3">
-        <input type="hidden" name="bonusValue" value="13">
-        <button type="submit">まほう +13</button>
+        <input type="hidden" name="bonusValue" th:value="${magicAttackBonus}">
+        <button type="submit" th:text="'まほう' + ${magicAttackBonus}"></button>
     </form>
     <form th:action="@{/games/apply-bonus}" method="post">
         <input type="hidden" name="bonusType" value="4">
-        <input type="hidden" name="bonusValue" value="14">
-        <button type="submit">ぼうぎょ +14</button>
+        <input type="hidden" name="bonusValue" th:value="${defenceBonus}">
+        <button type="submit" th:text="'ぼうぎょ' + ${defenceBonus}"></button>
     </form>
     <form th:action="@{/games/apply-bonus}" method="post">
         <input type="hidden" name="bonusType" value="5">
-        <input type="hidden" name="bonusValue" value="15">
-        <button type="submit">すばやさ +15</button>
+        <input type="hidden" name="bonusValue" th:value="${quicknessBonus}">
+        <button type="submit" th:text="'すばやさ' + ${quicknessBonus}"></button>
     </form>
     <form th:action="@{/games/apply-bonus}" method="post">
         <input type="hidden" name="bonusType" value="6">
-        <input type="hidden" name="bonusValue" value="1">
-        <button type="submit">はらぺこ +1</button>
+        <input type="hidden" name="bonusValue" th:value="${hungrinessBonus}">
+        <button type="submit" th:text="'はらぺこ' + ${hungrinessBonus}"></button>
     </form>
 
     <table>

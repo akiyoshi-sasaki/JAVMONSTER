@@ -11,9 +11,9 @@ import lombok.Data;
 @Data
 @Scope(value = WebApplicationContext.SCOPE_SESSION, proxyMode = ScopedProxyMode.TARGET_CLASS)
 public class GameSession {
-    private int hp = 100;
+    private int hp = 20;
     private int attack = 10;
-    private int magicAttack = 10;
+    private int magicAttack = 0;
     private int defence = 10;
     private int quickness = 10;
     private int hungriness = 10;
@@ -53,7 +53,7 @@ public class GameSession {
     public void reset() {
         this.hp = 100;
         this.attack = 10;
-        this.magicAttack = 10;
+        this.magicAttack = 0;
         this.defence = 10;
         this.quickness = 10;
         this.hungriness = 10;

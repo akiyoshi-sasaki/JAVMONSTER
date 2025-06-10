@@ -30,18 +30,23 @@ public class GameController {
     @GetMapping("/battle")
     public String battle(Model model, @RequestParam(required = false) Integer actionType,
             @RequestParam(required = false) Long monsterId) {
+        int hp = gameSession.getHp();
         int attack = gameSession.getAttack();
         int magicAttack = gameSession.getMagicAttack();
         int defence = gameSession.getDefence();
         int quickness = gameSession.getQuickness();
 
-        model.addAttribute("hp", gameSession.getHp());
+        model.addAttribute("hp", hp);
         model.addAttribute("attack", attack);
         model.addAttribute("magicAttack", magicAttack);
         model.addAttribute("defence", defence);
         model.addAttribute("quickness", quickness);
         model.addAttribute("hungriness", gameSession.getHungriness());
         model.addAttribute("winCount", gameSession.getWinCount());
+
+        if (gameSession.getHungriness() <= 0) {
+            return "games/result";
+        }
 
         Monster selectedMonster;
         // 新規モンスターを生成（ただし防御の場合は前回のモンスターを引き継ぐ)
@@ -55,10 +60,10 @@ public class GameController {
         }
         
         // 各行動の確率を抽選
-        model.addAttribute("attackRate", calcAttackRate(attack, selectedMonster.getHp(), selectedMonster.getDefence())); // HPと防御
-        model.addAttribute("magicAttackRate", calcMagicAttackRate(magicAttack, selectedMonster.getHp())); // HPのみ
-        model.addAttribute("defenceRate", calcDefenceRate(defence, selectedMonster.getAttack())); // 攻撃
-        model.addAttribute("quicknessRate", calcQuicknessRate(quickness, selectedMonster.getQuickness())); // すばやさ
+        model.addAttribute("attackRate", calcAttackRate(attack, selectedMonster.getHp(), selectedMonster.getDefence())); // 自：攻撃、敵：HPと防御
+        model.addAttribute("magicAttackRate", calcMagicAttackRate(magicAttack, selectedMonster.getHp()));  // 自：魔法攻撃：HP
+        model.addAttribute("defenceRate", calcDefenceRate(hp, defence, selectedMonster.getAttack())); // 自：HPと防御、敵：攻撃
+        model.addAttribute("quicknessRate", calcQuicknessRate(quickness, selectedMonster.getQuickness())); // 自：すばやさ、敵：すばやさ
 
         return "games/battle";
     }
@@ -101,6 +106,28 @@ public class GameController {
         if (gameSession.getWinCount() > 10) {
             return "games/result";
         }
+
+        int min = 1;
+        int max = 10;
+        int attackBonus = new Random().nextInt(max - min + 1) + min;
+        int magicAttackBonus = new Random().nextInt(max - min + 1) + min;
+        int defenceBonus = new Random().nextInt(max - min + 1) + min;
+        int quicknessBonus = new Random().nextInt(max - min + 1) + min;
+
+        int hpMin = 1;
+        int hpMax = 20;  
+        int hpBonus = new Random().nextInt(hpMax - hpMin + 1) + hpMin;
+        
+        int hungrinessMin = 1;
+        int hungrinessMax = 4;
+        int hungrinessBonus = new Random().nextInt(hungrinessMax - hungrinessMin + 1) + hungrinessMin;
+
+        model.addAttribute("hpBonus", hpBonus);
+        model.addAttribute("attackBonus", attackBonus);
+        model.addAttribute("magicAttackBonus", magicAttackBonus);
+        model.addAttribute("defenceBonus", defenceBonus);
+        model.addAttribute("quicknessBonus", quicknessBonus);
+        model.addAttribute("hungrinessBonus", hungrinessBonus);
         return "games/bonus-select";
     }
 
@@ -121,19 +148,44 @@ public class GameController {
     }
 
     private int calcAttackRate(int attack, int monsterHp, int monsterDefence) {
-        return Math.round((attack * attack) - (monsterDefence * monsterHp / 10));
+        double durability = monsterHp + monsterDefence * 2;
+        double ratio = durability / (attack * 2);
+        // 基本確率を指数関数で滑らかに表現（減少率調整用に基準を2に）、ratio=1→100%, ratio=2→50%
+        double baseRate = 100 * Math.pow(0.5, ratio - 1);
+        // ランダム誤差を ±5% 加えた上で0~100%にクリッピング
+        return (int) Math.round(Math.max(0, Math.min(100, baseRate + ((Math.random() - 0.5) * 10))));
     }
 
     private int calcMagicAttackRate(int magicAttack, int monsterHp) {
-        return Math.round((magicAttack * magicAttack) - (monsterHp / 10));
+        double ratio;
+        if (magicAttack > 0) {
+            ratio = monsterHp / magicAttack; 
+        } else {
+            ratio = 10; 
+        }
+
+        // 基本確率を指数関数で滑らかに表現（減少率調整用に基準を2に）、ratio=1→100%, ratio=2→50%
+        double baseRate = 100 * Math.pow(0.5, ratio - 1);
+        // ランダム誤差を ±5% 加えた上で0~100%にクリッピング
+        return (int) Math.round(Math.max(0, Math.min(100, baseRate + ((Math.random() - 0.5) * 10))));
     }
 
-    private int calcDefenceRate(int attack, int monsterAttack) {
-        return Math.round((attack * attack) - (monsterAttack * monsterAttack));
+    private int calcDefenceRate(int hp, int defence, int monsterAttack) {
+        double durability = hp + defence * 2;
+        double ratio = monsterAttack / durability; // 自分が防御側なので分母に耐久性が来る
+        // 基本確率を指数関数で滑らかに表現（減少率調整用に基準を2に）、ratio=1→100%, ratio=2→50%
+        double baseRate = 100 * Math.pow(0.5, ratio - 1);
+        System.out.println(baseRate);
+        // ランダム誤差を ±5% 加えた上で0~100%にクリッピング
+        return (int) Math.round(Math.max(0, Math.min(100, baseRate + ((Math.random() - 0.5) * 10))));
     }
 
     private int calcQuicknessRate(int quickness, int monsterQuickness) {
-        return Math.round((quickness * quickness) - (monsterQuickness * monsterQuickness));
+        double ratio = monsterQuickness / quickness;
+        // 基本確率を指数関数で滑らかに表現（減少率調整用に基準を2に）、ratio=1→100%, ratio=2→50%
+        double baseRate = 100 * Math.pow(0.5, ratio - 1);
+        // ランダム誤差を ±5% 加えた上で0~100%にクリッピング
+        return (int) Math.round(Math.max(0, Math.min(100, baseRate + ((Math.random() - 0.5) * 10))));
     }
 
     // DEBUG: ChatGPTに聞いたのであまり理解していないアルゴリズム
