@@ -30,19 +30,20 @@ public class GameController {
     @GetMapping("/battle")
     public String battle(Model model, @RequestParam(required = false) Integer actionType,
             @RequestParam(required = false) Long monsterId) {
+        int winCount = gameSession.getWinCount();
         int hp = gameSession.getHp();
         int attack = gameSession.getAttack();
         int magicAttack = gameSession.getMagicAttack();
         int defence = gameSession.getDefence();
         int quickness = gameSession.getQuickness();
 
+        model.addAttribute("winCount", winCount);
         model.addAttribute("hp", hp);
         model.addAttribute("attack", attack);
         model.addAttribute("magicAttack", magicAttack);
         model.addAttribute("defence", defence);
         model.addAttribute("quickness", quickness);
         model.addAttribute("hungriness", gameSession.getHungriness());
-        model.addAttribute("winCount", gameSession.getWinCount());
 
         if (gameSession.getHungriness() <= 0) {
             return "games/result";
@@ -51,14 +52,15 @@ public class GameController {
         Monster selectedMonster;
         // 新規モンスターを生成（ただし防御の場合は前回のモンスターを引き継ぐ)
         if (actionType == null || actionType != 3) {
-            List<Monster> monsters = monsterRepository.findByPhase(1); // DEBUG：phaseを固定
+            int phase = (int) Math.floor(winCount / 10) + 1; // FIXME：「何勝ごとにフェーズが変わるか」の10を定数化
+            List<Monster> monsters = monsterRepository.findByPhase(phase);
             selectedMonster = drawRandomMonster(monsters);
             model.addAttribute("monster", selectedMonster);
         } else {
             selectedMonster = monsterRepository.findById(monsterId).get(); // FIXME: 空だった時のエラー未対応
             model.addAttribute("monster", selectedMonster);
         }
-        
+
         // 各行動の確率を抽選
         model.addAttribute("attackRate", calcAttackRate(attack, selectedMonster.getHp(), selectedMonster.getDefence())); // 自：攻撃、敵：HPと防御
         model.addAttribute("magicAttackRate", calcMagicAttackRate(magicAttack, selectedMonster.getHp()));  // 自：魔法攻撃：HP
@@ -103,7 +105,7 @@ public class GameController {
         gameSession.addWinCount();
 
         // DEBUG
-        if (gameSession.getWinCount() > 10) {
+        if (gameSession.getWinCount() > 30) {
             return "games/result";
         }
 
