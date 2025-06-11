@@ -21,7 +21,13 @@ public class GameController {
     private final Random random = new Random();
     private final GameSession gameSession;
     private final MonsterRepository monsterRepository;
-    
+
+    private static final int PHASE_STEPS = 10;
+    private static final int ACTION_ATTACK = 1;
+    private static final int ACTION_MAGIC_ATTACK = 2;
+    private static final int ACTION_DEFENCE = 3;
+    private static final int ACTION_QUICKNESS = 4;
+
     public GameController(GameSession gameSession, MonsterRepository monsterRepository) {
         this.gameSession = gameSession;
         this.monsterRepository = monsterRepository;
@@ -30,29 +36,15 @@ public class GameController {
     @GetMapping("/battle")
     public String battle(Model model, @RequestParam(required = false) Integer actionType,
             @RequestParam(required = false) Long monsterId) {
-        int winCount = gameSession.getWinCount();
-        int hp = gameSession.getHp();
-        int attack = gameSession.getAttack();
-        int magicAttack = gameSession.getMagicAttack();
-        int defence = gameSession.getDefence();
-        int quickness = gameSession.getQuickness();
 
-        model.addAttribute("winCount", winCount);
-        model.addAttribute("hp", hp);
-        model.addAttribute("attack", attack);
-        model.addAttribute("magicAttack", magicAttack);
-        model.addAttribute("defence", defence);
-        model.addAttribute("quickness", quickness);
-        model.addAttribute("hungriness", gameSession.getHungriness());
+        addGameSessionToModel(model);
 
-        if (gameSession.getHungriness() <= 0) {
-            return "games/result";
-        }
+        if (gameSession.getHungriness() <= 0) return "games/result";
 
         Monster selectedMonster;
         // 新規モンスターを生成（ただし防御の場合は前回のモンスターを引き継ぐ)
-        if (actionType == null || actionType != 3) {
-            int phase = (int) Math.floor(winCount / 10) + 1; // FIXME：「何勝ごとにフェーズが変わるか」の10を定数化
+        if (actionType == null || actionType != ACTION_DEFENCE) {
+            int phase = (int) Math.floor(gameSession.getWinCount() / PHASE_STEPS) + 1;
             List<Monster> monsters = monsterRepository.findByPhase(phase);
             selectedMonster = drawRandomMonster(monsters);
             model.addAttribute("monster", selectedMonster);
@@ -62,10 +54,14 @@ public class GameController {
         }
 
         // 各行動の確率を抽選
-        model.addAttribute("attackRate", calcAttackRate(attack, selectedMonster.getHp(), selectedMonster.getDefence())); // 自：攻撃、敵：HPと防御
-        model.addAttribute("magicAttackRate", calcMagicAttackRate(magicAttack, selectedMonster.getHp()));  // 自：魔法攻撃：HP
-        model.addAttribute("defenceRate", calcDefenceRate(hp, defence, selectedMonster.getAttack())); // 自：HPと防御、敵：攻撃
-        model.addAttribute("quicknessRate", calcQuicknessRate(quickness, selectedMonster.getQuickness())); // 自：すばやさ、敵：すばやさ
+        model.addAttribute("attackRate", calcAttackRate(
+                gameSession.getAttack(), selectedMonster.getHp(), selectedMonster.getDefence())); // 自：攻撃、敵：HPと防御
+        model.addAttribute("magicAttackRate", calcMagicAttackRate(
+                gameSession.getMagicAttack(), selectedMonster.getHp()));  // 自：魔法攻撃：HP
+        model.addAttribute("defenceRate", calcDefenceRate(
+                gameSession.getHp(), gameSession.getDefence(), selectedMonster.getAttack())); // 自：HPと防御、敵：攻撃
+        model.addAttribute("quicknessRate", calcQuicknessRate(
+                gameSession.getQuickness(), selectedMonster.getQuickness())); // 自：すばやさ、敵：すばやさ
 
         return "games/battle";
     }
@@ -74,54 +70,38 @@ public class GameController {
     public String play(
             @RequestParam int actionType, @RequestParam int actionRate, Model model,
             @RequestParam(required = false) Long monsterId) {
+
+        // 行動したら空腹度増加、逃げる場合は空腹度が-2となる
         gameSession.subtractHungriness();
-        if (actionType == 4) {
-            // 逃げる場合は空腹度-2となる
-            gameSession.subtractHungriness();
-        }
+        if (actionType == ACTION_QUICKNESS) gameSession.subtractHungriness();
+ 
+        addGameSessionToModel(model);
 
-        model.addAttribute("winCount", gameSession.getWinCount());
-        model.addAttribute("hp", gameSession.getHp());
-        model.addAttribute("attack", gameSession.getAttack());
-        model.addAttribute("magicAttack", gameSession.getMagicAttack());
-        model.addAttribute("defence", gameSession.getDefence());
-        model.addAttribute("quickness", gameSession.getQuickness());
-        model.addAttribute("hungriness", gameSession.getHungriness());
+        if (!judge(actionType, actionRate)) return "games/result";
 
-        if (!judge(actionType, actionRate)) {
-            return "games/result";
-        }
+        // 防御時はモンスターのリセットをしない
+        if (actionType == ACTION_DEFENCE) return "redirect:battle?actionType=" + actionType + "&monsterId=" + monsterId;
 
-        if (actionType == 3) {
-            // モンスターのリセットをしない
-            return "redirect:battle?actionType=" + actionType + "&monsterId=" + monsterId;
-        }
-
-        if (actionType == 4) {
-            // ボーナスが貰えない
-            return "redirect:battle";
-        }
+        // 逃げる時はボーナスがもらえない
+        if (actionType == ACTION_QUICKNESS)  return "redirect:battle";
 
         gameSession.addWinCount();
 
         // DEBUG
-        if (gameSession.getWinCount() > 30) {
-            return "games/result";
-        }
+        if (gameSession.getWinCount() > 30) return "games/result";
 
         int min = 1;
-        int max = 10;
-        int attackBonus = new Random().nextInt(max - min + 1) + min;
-        int magicAttackBonus = new Random().nextInt(max - min + 1) + min;
-        int defenceBonus = new Random().nextInt(max - min + 1) + min;
-        int quicknessBonus = new Random().nextInt(max - min + 1) + min;
+        int max = 5;
+        int baseBonus = new Random().nextInt(max - min + 1) + min;
+        int attackBonus, magicAttackBonus, defenceBonus, quicknessBonus;
+        attackBonus = magicAttackBonus = defenceBonus = quicknessBonus = baseBonus;
 
         int hpMin = 1;
-        int hpMax = 20;  
+        int hpMax = 10;  
         int hpBonus = new Random().nextInt(hpMax - hpMin + 1) + hpMin;
         
         int hungrinessMin = 1;
-        int hungrinessMax = 4;
+        int hungrinessMax = 3;
         int hungrinessBonus = new Random().nextInt(hungrinessMax - hungrinessMin + 1) + hungrinessMin;
 
         model.addAttribute("hpBonus", hpBonus);
@@ -159,12 +139,8 @@ public class GameController {
     }
 
     private int calcMagicAttackRate(int magicAttack, int monsterHp) {
-        double ratio;
-        if (magicAttack > 0) {
-            ratio = monsterHp / magicAttack; 
-        } else {
-            ratio = 10; 
-        }
+     // 魔法攻撃力が0の時はかなり低めにする
+        double ratio = (magicAttack > 0) ? monsterHp / magicAttack : 10;
 
         // 基本確率を指数関数で滑らかに表現（減少率調整用に基準を2に）、ratio=1→100%, ratio=2→50%
         double baseRate = 100 * Math.pow(0.5, ratio - 1);
@@ -175,17 +151,20 @@ public class GameController {
     private int calcDefenceRate(int hp, int defence, int monsterAttack) {
         double durability = hp + defence * 2;
         double ratio = monsterAttack / durability; // 自分が防御側なので分母に耐久性が来る
+
         // 基本確率を指数関数で滑らかに表現（減少率調整用に基準を2に）、ratio=1→100%, ratio=2→50%
         double baseRate = 100 * Math.pow(0.5, ratio - 1);
-        System.out.println(baseRate);
+
         // ランダム誤差を ±5% 加えた上で0~100%にクリッピング
         return (int) Math.round(Math.max(0, Math.min(100, baseRate + ((Math.random() - 0.5) * 10))));
     }
 
     private int calcQuicknessRate(int quickness, int monsterQuickness) {
         double ratio = monsterQuickness / quickness;
+
         // 基本確率を指数関数で滑らかに表現（減少率調整用に基準を2に）、ratio=1→100%, ratio=2→50%
         double baseRate = 100 * Math.pow(0.5, ratio - 1);
+
         // ランダム誤差を ±5% 加えた上で0~100%にクリッピング
         return (int) Math.round(Math.max(0, Math.min(100, baseRate + ((Math.random() - 0.5) * 10))));
     }
@@ -204,5 +183,16 @@ public class GameController {
         }
 
         return monsters.get(0); // 安全のため（実行されることは基本的にない）
+    }
+
+    // WARNING：使うタイミングによってはmodelに2回目のaddをしているものがある
+    private void addGameSessionToModel(Model model) {
+        model.addAttribute("winCount", gameSession.getWinCount());
+        model.addAttribute("hp", gameSession.getHp());
+        model.addAttribute("attack", gameSession.getAttack());
+        model.addAttribute("magicAttack", gameSession.getMagicAttack());
+        model.addAttribute("defence", gameSession.getDefence());
+        model.addAttribute("quickness", gameSession.getQuickness());
+        model.addAttribute("hungriness", gameSession.getHungriness());
     }
 }
