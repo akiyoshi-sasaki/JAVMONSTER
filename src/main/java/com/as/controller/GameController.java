@@ -39,8 +39,6 @@ public class GameController {
 
         addGameSessionToModel(model);
 
-        if (gameSession.getHungriness() <= 0) return "games/result";
-
         Monster selectedMonster;
         // 新規モンスターを生成（ただし防御の場合は前回のモンスターを引き継ぐ)
         if (actionType == null || actionType != ACTION_DEFENCE) {
@@ -70,14 +68,16 @@ public class GameController {
     public String play(
             @RequestParam int actionType, @RequestParam int actionRate, Model model,
             @RequestParam(required = false) Long monsterId) {
-
         // 行動したら空腹度増加、逃げる場合は空腹度が-2となる
         gameSession.subtractHungriness();
         if (actionType == ACTION_QUICKNESS) gameSession.subtractHungriness();
- 
-        addGameSessionToModel(model);
 
+        addGameSessionToModel(model);
+ 
         if (!judge(actionType, actionRate)) return "games/result";
+
+        // 勝利判定をして勝利カウントを増やした上で、空腹度0なら終了
+        if (gameSession.getHungriness() <= 0) return "games/result";
 
         // 防御時はモンスターのリセットをしない
         if (actionType == ACTION_DEFENCE) return "redirect:battle?actionType=" + actionType + "&monsterId=" + monsterId;
