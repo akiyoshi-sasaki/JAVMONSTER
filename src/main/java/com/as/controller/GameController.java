@@ -3,6 +3,8 @@ package com.as.controller;
 import java.util.List;
 import java.util.Random;
 
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,7 +13,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import com.as.entity.Monster;
+import com.as.entity.User;
 import com.as.repository.MonsterRepository;
+import com.as.repository.UserRepository;
 import com.as.session.GameSession;
 
 @Controller
@@ -21,6 +25,7 @@ public class GameController {
     private final Random random = new Random();
     private final GameSession gameSession;
     private final MonsterRepository monsterRepository;
+    private final UserRepository userRepository;
 
     private static final int PHASE_STEPS = 10;
     // private static final int ACTION_ATTACK = 1;
@@ -32,9 +37,10 @@ public class GameController {
     private static final double DEBUG_CORRECTION = 1.5;
     // private static final int DEBUG_CORRECTION = 1.0;
 
-    public GameController(GameSession gameSession, MonsterRepository monsterRepository) {
+    public GameController(GameSession gameSession, MonsterRepository monsterRepository, UserRepository userRepository) {
         this.gameSession = gameSession;
         this.monsterRepository = monsterRepository;
+        this.userRepository = userRepository;
     }
 
     @GetMapping("/battle")
@@ -78,10 +84,16 @@ public class GameController {
 
         addGameSessionToModel(model);
  
-        if (!judge(actionType, actionRate)) return "games/result";
+        if (!judge(actionType, actionRate)) {
+            updateBestRecord();
+            return "games/result";
+        }
 
         // 勝利判定をして勝利カウントを増やした上で、空腹度0なら終了
-        if (gameSession.getHungriness() <= 0) return "games/result";
+        if (gameSession.getHungriness() <= 0) {
+            updateBestRecord();
+            return "games/result";
+        }
 
         // 防御時はモンスターのリセットをしない
         if (actionType == ACTION_DEFENCE) return "redirect:battle?actionType=" + actionType + "&monsterId=" + monsterId;
@@ -92,7 +104,10 @@ public class GameController {
         gameSession.addWinCount();
 
         // DEBUG
-        if (gameSession.getWinCount() > 19) return "games/result";
+        if (gameSession.getWinCount() > 19) {
+            updateBestRecord();
+            return "games/result";
+        }
 
         model.addAttribute("hpBonus", randomBonus());
         model.addAttribute("attackBonus", randomBonus());
@@ -175,6 +190,16 @@ public class GameController {
         model.addAttribute("defence", gameSession.getDefence());
         model.addAttribute("quickness", gameSession.getQuickness());
         model.addAttribute("hungriness", gameSession.getHungriness());
+    }
+
+    // WARNING: FIXME: userDetailなどを利用せずにusersテーブルの更新を行っているけど大丈夫か？
+    private void updateBestRecord() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String userName = authentication.getName();
+        User user = userRepository.findByUserName(userName);
+        if (gameSession.getWinCount() > user.getBestRecord()) {
+            userRepository.updateBestRecord(user.getId(), gameSession.getWinCount());
+        }
     }
 
     private void dd(Object s) {
