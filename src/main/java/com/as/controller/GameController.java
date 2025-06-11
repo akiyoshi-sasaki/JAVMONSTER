@@ -23,10 +23,14 @@ public class GameController {
     private final MonsterRepository monsterRepository;
 
     private static final int PHASE_STEPS = 10;
-    private static final int ACTION_ATTACK = 1;
-    private static final int ACTION_MAGIC_ATTACK = 2;
+    // private static final int ACTION_ATTACK = 1;
+    // private static final int ACTION_MAGIC_ATTACK = 2;
     private static final int ACTION_DEFENCE = 3;
     private static final int ACTION_QUICKNESS = 4;
+    private static final int RANDOM_RANGE = 15;
+    private static final int RATE_MIN = 1;
+    private static final double DEBUG_CORRECTION = 1.5;
+    // private static final int DEBUG_CORRECTION = 1.0;
 
     public GameController(GameSession gameSession, MonsterRepository monsterRepository) {
         this.gameSession = gameSession;
@@ -88,28 +92,14 @@ public class GameController {
         gameSession.addWinCount();
 
         // DEBUG
-        if (gameSession.getWinCount() > 30) return "games/result";
+        if (gameSession.getWinCount() > 19) return "games/result";
 
-        int min = 1;
-        int max = 5;
-        int baseBonus = new Random().nextInt(max - min + 1) + min;
-        int attackBonus, magicAttackBonus, defenceBonus, quicknessBonus;
-        attackBonus = magicAttackBonus = defenceBonus = quicknessBonus = baseBonus;
-
-        int hpMin = 1;
-        int hpMax = 10;  
-        int hpBonus = new Random().nextInt(hpMax - hpMin + 1) + hpMin;
-        
-        int hungrinessMin = 1;
-        int hungrinessMax = 3;
-        int hungrinessBonus = new Random().nextInt(hungrinessMax - hungrinessMin + 1) + hungrinessMin;
-
-        model.addAttribute("hpBonus", hpBonus);
-        model.addAttribute("attackBonus", attackBonus);
-        model.addAttribute("magicAttackBonus", magicAttackBonus);
-        model.addAttribute("defenceBonus", defenceBonus);
-        model.addAttribute("quicknessBonus", quicknessBonus);
-        model.addAttribute("hungrinessBonus", hungrinessBonus);
+        model.addAttribute("hpBonus", randomBonus());
+        model.addAttribute("attackBonus", randomBonus());
+        model.addAttribute("magicAttackBonus", randomBonus());
+        model.addAttribute("defenceBonus", randomBonus());
+        model.addAttribute("quicknessBonus", randomBonus());
+        model.addAttribute("hungrinessBonus", Math.round((randomBonus() + 2) / 3));
         return "games/bonus-select";
     }
 
@@ -130,45 +120,36 @@ public class GameController {
     }
 
     private int calcAttackRate(int attack, int monsterHp, int monsterDefence) {
-        double durability = monsterHp + monsterDefence * 2;
-        double ratio = durability / (attack * 2);
-        // 基本確率を指数関数で滑らかに表現（減少率調整用に基準を2に）、ratio=1→100%, ratio=2→50%
-        double baseRate = 100 * Math.pow(0.5, ratio - 1);
-        // ランダム誤差を ±5% 加えた上で0~100%にクリッピング
-        return (int) Math.round(Math.max(0, Math.min(100, baseRate + ((Math.random() - 0.5) * 10))));
+        double ratio = (double) attack / (monsterHp + monsterDefence * 1.5) * DEBUG_CORRECTION;
+        return (int) Math.min(99, Math.max(RATE_MIN, ratio * 100 + ((Math.random() - 0.5) * RANDOM_RANGE)));
     }
 
     private int calcMagicAttackRate(int magicAttack, int monsterHp) {
-     // 魔法攻撃力が0の時はかなり低めにする
-        double ratio = (magicAttack > 0) ? monsterHp / magicAttack : 10;
-
-        // 基本確率を指数関数で滑らかに表現（減少率調整用に基準を2に）、ratio=1→100%, ratio=2→50%
-        double baseRate = 100 * Math.pow(0.5, ratio - 1);
-        // ランダム誤差を ±5% 加えた上で0~100%にクリッピング
-        return (int) Math.round(Math.max(0, Math.min(100, baseRate + ((Math.random() - 0.5) * 10))));
+        double ratio = (double) magicAttack / (monsterHp * 2) * DEBUG_CORRECTION;
+        return (int) Math.min(99, Math.max(RATE_MIN, ratio * 100 + ((Math.random() - 0.5) * RANDOM_RANGE)));
     }
 
     private int calcDefenceRate(int hp, int defence, int monsterAttack) {
-        double durability = hp + defence * 2;
-        double ratio = monsterAttack / durability; // 自分が防御側なので分母に耐久性が来る
-
-        // 基本確率を指数関数で滑らかに表現（減少率調整用に基準を2に）、ratio=1→100%, ratio=2→50%
-        double baseRate = 100 * Math.pow(0.5, ratio - 1);
-
-        // ランダム誤差を ±5% 加えた上で0~100%にクリッピング
-        return (int) Math.round(Math.max(0, Math.min(100, baseRate + ((Math.random() - 0.5) * 10))));
+        double ratio = ((double) hp + defence * 1.5) / monsterAttack * DEBUG_CORRECTION;
+        return (int) Math.min(99, Math.max(RATE_MIN, ratio * 100 + ((Math.random() - 0.5) * RANDOM_RANGE)));
     }
 
     private int calcQuicknessRate(int quickness, int monsterQuickness) {
-        double ratio = monsterQuickness / quickness;
-
-        // 基本確率を指数関数で滑らかに表現（減少率調整用に基準を2に）、ratio=1→100%, ratio=2→50%
-        double baseRate = 100 * Math.pow(0.5, ratio - 1);
-
-        // ランダム誤差を ±5% 加えた上で0~100%にクリッピング
-        return (int) Math.round(Math.max(0, Math.min(100, baseRate + ((Math.random() - 0.5) * 10))));
+        double ratio = (double) quickness / (monsterQuickness * 2) * DEBUG_CORRECTION;
+        return (int) Math.min(99, Math.max(RATE_MIN, ratio * 100 + ((Math.random() - 0.5) * RANDOM_RANGE)));
     }
 
+    // 2~4が中央で10が出づらいランダム生成
+    private int randomBonus() {
+        Random rand = new Random();
+        int r1 = rand.nextInt(99) + 1;
+        r1 = (rand.nextInt(2) == 1) ? r1 : r1 * -1;
+        int r2 = rand.nextInt(99) + 1;
+        r2 = (rand.nextInt(2) == 1) ? r2 : r2 * -1;
+        int r = (int) Math.round((Math.abs(r1 + r2) + 10) / 20);
+        return r;
+    }
+    
     // DEBUG: ChatGPTに聞いたのであまり理解していないアルゴリズム
     private Monster drawRandomMonster(List<Monster> monsters) {
         int totalWeight = monsters.stream().mapToInt(Monster::getIncidence).sum();
@@ -194,5 +175,9 @@ public class GameController {
         model.addAttribute("defence", gameSession.getDefence());
         model.addAttribute("quickness", gameSession.getQuickness());
         model.addAttribute("hungriness", gameSession.getHungriness());
+    }
+
+    private void dd(Object s) {
+        System.out.println(s);
     }
 }
